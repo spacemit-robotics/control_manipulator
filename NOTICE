@@ -1,0 +1,40 @@
+SpacemiT Manipulator Component
+Copyright 2026 SpacemiT (Hangzhou) Technology Co. Ltd.
+
+This product includes software developed at
+SpacemiT (Hangzhou) Technology Co. Ltd. (https://www.spacemit.com/).
+
+---------------------------------------------------------------------------
+Third-party Software Notices:
+---------------------------------------------------------------------------
+
+This component optionally links against the following third-party libraries
+at build time; their source code is NOT included in this repository:
+
+1. Pinocchio (https://github.com/stack-of-tasks/pinocchio)
+   Copyright (c) 2014-2026 CNRS, INRIA
+   Licensed under the BSD 2-Clause License.
+
+2. Coal (https://github.com/coal-library/coal)
+   Copyright (c) 2008-2026 CNRS, INRIA, LAAS-CNRS
+   Licensed under the BSD 2-Clause License.
+   Formerly known as hpp-fcl.
+
+3. Eigen (https://eigen.tuxfamily.org/)
+   Copyright (c) Benoît Jacob, Gaël Guennebaud, et al.
+   Licensed under the MPL 2.0 License.
+
+4. Boost (https://www.boost.org/)
+   Copyright (c) Contributors of the Boost Libraries
+   Licensed under the Boost Software License 1.0 (BSL-1.0).
+
+---------------------------------------------------------------------------
+Derived Works:
+---------------------------------------------------------------------------
+
+1. SO-ARM100 URDF (https://github.com/TheRobotStudio/SO-ARM100)
+   Copyright (c) 2023-2026 TheRobotStudio
+   Licensed under the Apache License 2.0.
+   The file urdf/so101.urdf is derived from the SO-ARM100 project's
+   so101_new_calib.urdf, with meshes replaced by simple geometric shapes
+   while retaining the original kinematic parameters.
