@@ -69,7 +69,7 @@ static pinocchio::SE3 pose_to_se3(const kin_pose_t *p) {
     Eigen::Quaterniond q(p->qw, p->qx, p->qy, p->qz);
     q.normalize();
     return pinocchio::SE3(q.toRotationMatrix(),
-                           Eigen::Vector3d(p->x, p->y, p->z));
+                            Eigen::Vector3d(p->x, p->y, p->z));
 }
 
 static void se3_to_pose(const pinocchio::SE3 &se3, kin_pose_t *p) {
@@ -116,8 +116,8 @@ static Eigen::VectorXd joints_to_eigen(const kin_joints_t *j, int model_nq) {
 * ========================================================================== */
 
 static int pinocchio_forward(kin_solver_t *solver,
-                             const kin_joints_t *joints,
-                             kin_pose_t *out) {
+                                const kin_joints_t *joints,
+                                kin_pose_t *out) {
     if (!solver || !joints || !out)
             return KIN_ERR_PARAM;
 
@@ -156,10 +156,10 @@ static constexpr double IK_STALL_TOL     = 1e-8; /* |Δerror| stall thr.   */
 static constexpr int    IK_STALL_LIMIT   = 10;   /* consecutive stalls    */
 
 static int pinocchio_inverse(kin_solver_t *solver,
-                             const kin_pose_t *target,
-                             const kin_joints_t *q_init,
-                             const kin_ik_params_t *params,
-                             kin_joints_t *out) {
+                                const kin_pose_t *target,
+                                const kin_joints_t *q_init,
+                                const kin_ik_params_t *params,
+                                kin_joints_t *out) {
     if (!solver || !target || !out)
             return KIN_ERR_PARAM;
 
@@ -173,15 +173,15 @@ static int pinocchio_inverse(kin_solver_t *solver,
     const int    max_iter = priv->ik_max_iter;
     /* position_weight: 1.0=仅位置, <1.0=加权混合 */
     const double pos_w = (params && params->position_weight > 0.0)
-                         ? params->position_weight : 1.0;
+                            ? params->position_weight : 1.0;
     const bool   pos_only = (pos_w >= 1.0);
     const double ori_w = 1.0 - pos_w;
 
     const int out_count =
             (q_init && q_init->count > 0)
                     ? std::min(
-                          static_cast<int>(q_init->count),
-                          priv->num_joints)
+                            static_cast<int>(q_init->count),
+                            priv->num_joints)
                     : priv->num_joints;
 
     /* ---------- initial configuration ---------- */
@@ -203,13 +203,13 @@ static int pinocchio_inverse(kin_solver_t *solver,
 
             const pinocchio::SE3 &cur = priv->data.oMf[priv->tip_frame_id];
             auto err   = compute_pose_error(cur, tgt, pos_only);
-            
+
             /* 应用权重到误差 */
             if (!pos_only) {
                 err.head<3>() *= pos_w;
                 err.tail<3>() *= ori_w;
             }
-            
+
             double en  = pos_only ? err.head<3>().norm() : err.norm();
 
             /* convergence */
@@ -256,7 +256,7 @@ static int pinocchio_inverse(kin_solver_t *solver,
                     Eigen::MatrixXd J_weighted = J;
                     J_weighted.topRows<3>() *= pos_w;
                     J_weighted.bottomRows<3>() *= ori_w;
-                    
+
                     Eigen::MatrixXd JJt = J_weighted * J_weighted.transpose();
                     JJt.diagonal().array() += IK_DAMPING;
                     dq = J_weighted.transpose() * JJt.ldlt().solve(err);
@@ -328,8 +328,8 @@ static const struct kin_ops pinocchio_ops = {
 extern "C" {
 
 static kin_solver_t *pinocchio_factory(const char *urdf_path,
-                                       const char *base_link,
-                                       const char *tip_link) {
+                                        const char *base_link,
+                                        const char *tip_link) {
     if (!urdf_path || !tip_link) {
         pin_err("factory: urdf_path and tip_link are required");
         return nullptr;

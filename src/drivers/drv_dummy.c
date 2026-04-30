@@ -37,8 +37,8 @@ static void dummy_stop(struct manip_dev *dev) {
 }
 
 static int dummy_get_state(struct manip_dev *dev,
-                           manip_joint_t *out_joints,
-                           manip_pose_t *out_pose) {
+                            manip_joint_t *out_joints,
+                            manip_pose_t *out_pose) {
     pthread_mutex_lock(&dev->state_lock);
     if (out_joints)
         *out_joints = dev->cur_joints;

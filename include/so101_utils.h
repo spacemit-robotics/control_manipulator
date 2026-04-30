@@ -10,8 +10,8 @@
 *
 * 使用前需要先通过 motor_alloc_uart + motor_init 创建并初始化电机。
 */
-#ifndef MANIPULATOR_INCLUDE_SO101_UTILS_H_
-#define MANIPULATOR_INCLUDE_SO101_UTILS_H_
+#ifndef SO101_UTILS_H
+#define SO101_UTILS_H
 
 #include <stdbool.h>
 #include <stdint.h>
@@ -88,4 +88,4 @@ const char *so101_joint_name(int index);
 }
 #endif
 
-#endif  // MANIPULATOR_INCLUDE_SO101_UTILS_H_
+#endif  // SO101_UTILS_H

@@ -1289,18 +1289,18 @@ int main(int argc, char *argv[]) {
     * ----------------------------------------------------------- */
     printf("[3/3] 初始化运动学求解器...\n");
     g_kin_solver = kin_create(NULL,
-                               SO101_DEFAULT_URDF_PATH,
-                               SO101_BASE_LINK,
-                               SO101_TIP_LINK);
+                                SO101_DEFAULT_URDF_PATH,
+                                SO101_BASE_LINK,
+                                SO101_TIP_LINK);
 
     /* -----------------------------------------------------------
     * 初始化运动学求解器 (可选)
     * ----------------------------------------------------------- */
     printf("[3/3] 初始化运动学求解器...\n");
     g_kin_solver = kin_create(NULL,
-                               SO101_DEFAULT_URDF_PATH,
-                               SO101_BASE_LINK,
-                               SO101_TIP_LINK);
+                                SO101_DEFAULT_URDF_PATH,
+                                SO101_BASE_LINK,
+                                SO101_TIP_LINK);
     if (g_kin_solver) {
         printf("  ✓ 运动学求解器初始化成功\n");
         printf("  (FK/IK 测试功能已启用)\n");

@@ -6,8 +6,8 @@
  * 补充 SMS_STS.h 中未定义但 assemble/calibrate 流程所需的寄存器。
  * 地址来源：飞特 STS3215 数据手册。
  */
-#ifndef MANIPULATOR_INCLUDE_STS3215_REGS_H_
-#define MANIPULATOR_INCLUDE_STS3215_REGS_H_
+#ifndef STS3215_REGS_H
+#define STS3215_REGS_H
 
 /* ---- 已在 SMS_STS.h 中定义的寄存器（仅注释，不重复定义） ----
  *  SMS_STS_ID                  5
@@ -77,4 +77,4 @@
 #define REG_LOCK            55   /* SMS_STS_LOCK */
 #define REG_PRESENT_POS_L   56   /* SMS_STS_PRESENT_POSITION_L */
 
-#endif  // MANIPULATOR_INCLUDE_STS3215_REGS_H_
+#endif  // STS3215_REGS_H

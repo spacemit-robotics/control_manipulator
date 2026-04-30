@@ -139,12 +139,12 @@ struct so101_priv {
 * ========================================================================== */
 
 static inline int reg_write_byte(struct motor_dev *dev,
-                                 uint8_t reg, uint8_t val) {
+                                    uint8_t reg, uint8_t val) {
     return motor_set_paras(dev, &reg, &val, 1);
 }
 
 static inline int reg_write_word(struct motor_dev *dev,
-                                 uint8_t reg, uint16_t val) {
+                                    uint8_t reg, uint16_t val) {
     return motor_set_paras(dev, &reg, &val, 2);
 }
 
@@ -299,11 +299,11 @@ static int so101_configure_motor(struct motor_dev *motor, const char *name) {
 
     /* PID: P=16, I=0, D=0 (降低 P 避免过冲) */
     if (reg_write_byte(motor, STS3215_P_COEFFICIENT,
-                       STS3215_SO101_P) != 0 ||
+                        STS3215_SO101_P) != 0 ||
         reg_write_byte(motor, STS3215_I_COEFFICIENT,
-                       STS3215_SO101_I) != 0 ||
+                        STS3215_SO101_I) != 0 ||
         reg_write_byte(motor, STS3215_D_COEFFICIENT,
-                       STS3215_SO101_D) != 0) {
+                        STS3215_SO101_D) != 0) {
         fprintf(stderr, "[SO101] set PID failed: %s\n", name);
         return -1;
     }
@@ -383,11 +383,11 @@ static int so101_save_calibration(
     for (int i = 0; i < SO101_ARM_MOTORS; i++) {
         const struct so101_joint_calib *jc = &calib->joints[i];
         fprintf(f,
-          "  \"%s\": {\"id\": %d, \"homing_offset\": %d, "
-          "\"range_min\": %u, \"range_max\": %u}%s\n",
-          so101_joint_names[i], i + 1, jc->homing_offset,
-          jc->range_min, jc->range_max,
-          (i < SO101_ARM_MOTORS - 1) ? "," : "");
+            "  \"%s\": {\"id\": %d, \"homing_offset\": %d, "
+            "\"range_min\": %u, \"range_max\": %u}%s\n",
+            so101_joint_names[i], i + 1, jc->homing_offset,
+            jc->range_min, jc->range_max,
+            (i < SO101_ARM_MOTORS - 1) ? "," : "");
     }
     fprintf(f, "}\n");
     fclose(f);
@@ -403,7 +403,7 @@ static int so101_save_calibration(
 * 只需要解析 homing_offset, range_min, range_max 三个字段。
 */
 static int so101_load_calibration(struct so101_calibration *calib,
-                                  const char *path) {
+                                    const char *path) {
     FILE *f = fopen(path, "r");
     if (!f) {
         /* 文件不存在不算错误，只是没有校准 */
@@ -493,7 +493,7 @@ static int so101_write_calibration_to_motors(
 
         /* Min_Position_Limit */
         if (reg_write_word(motors[i], REG_MIN_ANGLE_L,
-                           jc->range_min) != 0) {
+                            jc->range_min) != 0) {
             fprintf(stderr, "[SO101] write range_min failed: %s\n",
                             so101_joint_names[i]);
             return -1;
@@ -501,7 +501,7 @@ static int so101_write_calibration_to_motors(
 
         /* Max_Position_Limit */
         if (reg_write_word(motors[i], REG_MAX_ANGLE_L,
-                           jc->range_max) != 0) {
+                            jc->range_max) != 0) {
             fprintf(stderr, "[SO101] write range_max failed: %s\n",
                             so101_joint_names[i]);
             return -1;
@@ -585,7 +585,7 @@ int so101_assemble(struct motor_dev **motors, int count) {
 *   - 用户已将所有关节手动移到中位
 */
 static int so101_record_homing_offsets(struct motor_dev **motors,
-                                       struct so101_calibration *calib) {
+                                        struct so101_calibration *calib) {
     printf("[SO101] 记录中位偏移...\n");
 
     /*
@@ -638,17 +638,17 @@ static int so101_record_homing_offsets(struct motor_dev **motors,
 * @return 0 成功，-1 失败
 */
 static int so101_record_ranges(struct motor_dev **motors,
-                               struct so101_calibration *calib,
-                               bool interactive) {
+                                struct so101_calibration *calib,
+                                bool interactive) {
     if (!interactive) {
         /* 非交互模式：使用合理的默认行程 */
         for (int i = 0; i < SO101_ARM_MOTORS; i++) {
             calib->joints[i].range_min = 100;
             calib->joints[i].range_max = 3995;
             printf("[SO101]   %s: range=[%u, %u] (默认)\n",
-                   so101_joint_names[i],
-                   calib->joints[i].range_min,
-                   calib->joints[i].range_max);
+                    so101_joint_names[i],
+                    calib->joints[i].range_min,
+                    calib->joints[i].range_max);
         }
         return 0;
     }
@@ -725,8 +725,8 @@ int so101_calibrate(struct motor_dev **motors,
         return -1;
 
     if (interactive) {
-          printf("[SO101] 步骤 2/5: 请将所有关节手动移到中间位置，"
-                 "然后按 Enter...\n");
+            printf("[SO101] 步骤 2/5: 请将所有关节手动移到中间位置，"
+                    "然后按 Enter...\n");
         while (getchar() != '\n') {}
     } else {
         printf("[SO101] 步骤 2/5: 读取当前位置作为中位...\n");
@@ -767,7 +767,7 @@ int so101_calibrate(struct motor_dev **motors,
     }
 
     /* Step 4: 记录行程范围 (此时 Present_Position 已在
-       offset-adjusted 坐标系) */
+        offset-adjusted 坐标系) */
     printf("[SO101] 步骤 4/5: 记录行程范围 (基于校准后坐标系)...\n");
     if (so101_record_ranges(motors, calib, interactive) != 0)
         return -1;
@@ -942,8 +942,8 @@ static void so101_stop(struct manip_dev *dev) {
 * @return MANIP_OK 成功，MANIP_ERR_CONNECT 通信失败
 */
 static int so101_get_state(struct manip_dev *dev,
-                           manip_joint_t *out_joints,
-                           manip_pose_t *out_pose) {
+                            manip_joint_t *out_joints,
+                            manip_pose_t *out_pose) {
     if (!dev)
         return MANIP_ERR_PARAM;
 
@@ -1254,10 +1254,10 @@ static struct manip_dev *so101_factory(const char *name, void *args) {
     for (int i = 0; i < SO101_ARM_MOTORS; ++i) {
         p->motors[i] =
                 motor_alloc_uart("drv_uart_feetech",
-                                 cfg.uart_path,
-                                 cfg.baud,
-                                 cfg.ids[i],
-                                 NULL);
+                                    cfg.uart_path,
+                                    cfg.baud,
+                                    cfg.ids[i],
+                                    NULL);
         if (!p->motors[i]) {
             fprintf(stderr, "[SO101] Failed to alloc arm motor %d (ID=%u)\n", i,
                             cfg.ids[i]);
@@ -1310,15 +1310,15 @@ static struct manip_dev *so101_factory(const char *name, void *args) {
     /* 尝试自动绑定运动学求解器 (IK/FK) */
     {
         kin_solver_t *kin = kin_create(cfg.kin_solver_name,
-                                       urdf,
-                                       SO101_BASE_LINK,
-                                       SO101_TIP_LINK);
+                                        urdf,
+                                        SO101_BASE_LINK,
+                                        SO101_TIP_LINK);
         if (kin) {
             dev->kin_solver = kin;
             printf("[SO101] Kinematics solver attached (FK/IK enabled)\n");
         } else {
             printf("[SO101] No kinematics solver available "
-                   "(move_line disabled)\n");
+                    "(move_line disabled)\n");
         }
     }
 

@@ -67,9 +67,9 @@ static struct kin_solver_info *find_kin_solver(const char *name) {
 * ========================================================================== */
 
 kin_solver_t *kin_create(const char *solver_name,
-                         const char *urdf_path,
-                         const char *base_link,
-                         const char *tip_link) {
+                            const char *urdf_path,
+                            const char *base_link,
+                            const char *tip_link) {
     struct kin_solver_info *info = find_kin_solver(solver_name);
     if (!info || !info->factory) {
         printf("[KIN] No solver factory for: %s\n",
@@ -132,7 +132,7 @@ int kin_get_num_joints(kin_solver_t *solver) {
 }
 
 int kin_get_joint_limits(kin_solver_t *solver,
-                         double *lower, double *upper) {
+                            double *lower, double *upper) {
     if (!solver)
         return KIN_ERR_PARAM;
 

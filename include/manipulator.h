@@ -9,8 +9,8 @@
 * 具体驱动 (如 SO-101 Feetech) 通过注册机制挂载。
 */
 
-#ifndef MANIPULATOR_INCLUDE_MANIPULATOR_H_
-#define MANIPULATOR_INCLUDE_MANIPULATOR_H_
+#ifndef MANIPULATOR_H
+#define MANIPULATOR_H
 
 #include <stdbool.h>
 #include <stddef.h>
@@ -174,4 +174,4 @@ int manip_set_kinematics(struct manip_dev *dev, struct kin_solver *solver);
 }
 #endif
 
-#endif  // MANIPULATOR_INCLUDE_MANIPULATOR_H_
+#endif  // MANIPULATOR_H

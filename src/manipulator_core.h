@@ -2,8 +2,8 @@
 * Copyright (C) 2026 SpacemiT (Hangzhou) Technology Co. Ltd.
 * SPDX-License-Identifier: Apache-2.0
 */
-#ifndef MANIPULATOR_SRC_MANIPULATOR_CORE_H_
-#define MANIPULATOR_SRC_MANIPULATOR_CORE_H_
+#ifndef MANIPULATOR_CORE_H
+#define MANIPULATOR_CORE_H
 
 /**
 * @file manipulator_core.h
@@ -99,4 +99,4 @@ struct manip_dev *manip_dev_alloc(const char *name, size_t priv_size);
 */
 void manip_dev_free_default(struct manip_dev *dev);
 
-#endif  // MANIPULATOR_SRC_MANIPULATOR_CORE_H_
+#endif  // MANIPULATOR_CORE_H

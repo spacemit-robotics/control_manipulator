@@ -30,8 +30,8 @@ typedef struct {
 * ========================================================================== */
 
 static int dummy_forward(kin_solver_t *solver,
-                         const kin_joints_t *joints,
-                         kin_pose_t *out) {
+                            const kin_joints_t *joints,
+                            kin_pose_t *out) {
     (void)solver;
     (void)joints;
     (void)out;
@@ -39,10 +39,10 @@ static int dummy_forward(kin_solver_t *solver,
 }
 
 static int dummy_inverse(kin_solver_t *solver,
-                         const kin_pose_t *target,
-                         const kin_joints_t *q_init,
-                         const kin_ik_params_t *params,
-                         kin_joints_t *out) {
+                            const kin_pose_t *target,
+                            const kin_joints_t *q_init,
+                            const kin_ik_params_t *params,
+                            kin_joints_t *out) {
     (void)solver;
     (void)target;
     (void)q_init;
@@ -94,8 +94,8 @@ static const struct kin_ops dummy_ops = {
 * ========================================================================== */
 
 static kin_solver_t *dummy_factory(const char *urdf_path,
-                                   const char *base_link,
-                                   const char *tip_link) {
+                                    const char *base_link,
+                                    const char *tip_link) {
     kin_solver_t *solver = calloc(1, sizeof(*solver));
     if (!solver)
             return NULL;

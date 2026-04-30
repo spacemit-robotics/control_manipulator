@@ -19,8 +19,8 @@
 *   1. 实现 struct kin_ops 中的函数
 *   2. 在 kin_create 工厂中注册
 */
-#ifndef MANIPULATOR_INCLUDE_KINEMATICS_INTERFACE_H_
-#define MANIPULATOR_INCLUDE_KINEMATICS_INTERFACE_H_
+#ifndef KINEMATICS_INTERFACE_H
+#define KINEMATICS_INTERFACE_H
 
 #include <stdbool.h>
 #include <stddef.h>
@@ -28,7 +28,7 @@
 
 #ifdef __cplusplus
 extern "C" {
-#endif
+#endif  // KINEMATICS_INTERFACE_H
 
 /* ==========================================================================
 * 1. Error Codes

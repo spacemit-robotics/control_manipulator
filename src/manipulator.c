@@ -167,7 +167,7 @@ int manip_move_line(struct manip_dev *dev, const manip_pose_t *target,
 }
 
 int manip_move_target(struct manip_dev *dev, const manip_pose_t *target,
-                      float speed_ratio) {
+                        float speed_ratio) {
     if (!dev || !target)
         return MANIP_ERR_PARAM;
 
@@ -180,8 +180,8 @@ int manip_move_target(struct manip_dev *dev, const manip_pose_t *target,
 }
 
 int manip_solve_target_joints(struct manip_dev *dev,
-                              const manip_pose_t *target,
-                              manip_joint_t *out_joints) {
+                                const manip_pose_t *target,
+                                manip_joint_t *out_joints) {
     if (!dev || !target || !out_joints)
         return MANIP_ERR_PARAM;
 
@@ -210,7 +210,7 @@ int manip_solve_target_joints(struct manip_dev *dev,
 
     kin_joints_t q_result;
     int ik_ret = kin_inverse(dev->kin_solver, &ik_target, &q_init,
-                             &ik_params, &q_result);
+                                &ik_params, &q_result);
     if (ik_ret != KIN_OK)
         return MANIP_ERR_NOSYS;
 
