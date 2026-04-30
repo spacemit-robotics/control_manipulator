@@ -1253,7 +1253,7 @@ static struct manip_dev *so101_factory(const char *name, void *args) {
     /* Allocate motors */
     for (int i = 0; i < SO101_ARM_MOTORS; ++i) {
         p->motors[i] =
-                motor_alloc_uart("feetech",
+                motor_alloc_uart("drv_uart_feetech",
                                  cfg.uart_path,
                                  cfg.baud,
                                  cfg.ids[i],
@@ -1291,6 +1291,18 @@ static struct manip_dev *so101_factory(const char *name, void *args) {
     so101_enable_torque_all(p->motors, SO101_ARM_MOTORS);
     p->assembled = true;
     p->has_target = false;  /* 初始化运动控制状态 */
+
+    /* 如果加载了校准数据，发送命令让关节移动到零位 (0 rad) */
+    if (p->calib.valid) {
+        struct motor_cmd cmds[SO101_ARM_MOTORS];
+        for (int i = 0; i < SO101_ARM_MOTORS; i++) {
+            cmds[i].mode = MOTOR_MODE_POS;
+            cmds[i].pos_des = rad_to_ticks(0.0f);  /* 0 rad → 2047 ticks */
+            cmds[i].vel_des = (float)SO101_DEFAULT_VEL;
+        }
+        motor_set_cmds(p->motors, cmds, SO101_ARM_MOTORS);
+        printf("[SO101] 已发送归零命令 (目标: 0 rad = 2047 ticks)\n");
+    }
 
     dev->ops = &so101_ops;
     dev->running = true;

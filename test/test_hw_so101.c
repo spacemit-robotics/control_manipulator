@@ -545,7 +545,7 @@ static void test_assemble(void) {
 
     for (int i = 0; i < SO101_ARM_MOTOR_COUNT; i++) {
         motors[i] = motor_alloc_uart(
-                "feetech", uart_path, 1000000, (uint8_t)(i + 1), NULL);
+                "drv_uart_feetech", uart_path, 1000000, (uint8_t)(i + 1), NULL);
         if (!motors[i]) {
             fprintf(stderr, "  [错误] 分配电机 %d 失败\n", i + 1);
             motor_free(motors, (uint32_t)i);
@@ -642,7 +642,7 @@ static void test_calibrate(void) {
 
     for (int i = 0; i < SO101_ARM_MOTOR_COUNT; i++) {
         motors[i] = motor_alloc_uart(
-                "feetech", uart_path, 1000000, (uint8_t)(i + 1), NULL);
+                "drv_uart_feetech", uart_path, 1000000, (uint8_t)(i + 1), NULL);
         if (!motors[i]) {
             fprintf(stderr, "  [错误] 分配电机 %d 失败\n", i + 1);
             motor_free(motors, (uint32_t)i);
@@ -717,7 +717,7 @@ static void test_read_registers(void) {
 
     for (int i = 0; i < SO101_ARM_MOTOR_COUNT; i++) {
         motors[i] = motor_alloc_uart(
-                "feetech", uart_path, 1000000, (uint8_t)(i + 1), NULL);
+                "drv_uart_feetech", uart_path, 1000000, (uint8_t)(i + 1), NULL);
         if (!motors[i]) {
             fprintf(stderr, "  [错误] 分配电机 %d 失败\n", i + 1);
             motor_free(motors, (uint32_t)i);
