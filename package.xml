@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>manipulator</name>
+  <version>1.0.0</version>
+  <description>Generic manipulator control library with driver plugin architecture, kinematics integration (Pinocchio), and joint/line motion planning</description>
+
+  <maintainer email="robot_team@spacemit.com">robot_team</maintainer>
+  <license>Apache-2.0</license>
+
+  <depend>motor</depend>
+  <depend>grasp</depend>
+
+  <export>
+    <build_type>cmake</build_type>
+  </export>
+</package>
