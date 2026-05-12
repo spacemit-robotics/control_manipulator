@@ -8,6 +8,9 @@ set(CMAKE_C_STANDARD_REQUIRED   ON)
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+set(MANIP_LOCAL_MOTOR_DIR
+    ${CMAKE_CURRENT_SOURCE_DIR}/third_party/motor)
+
 find_package(Threads REQUIRED)
 
 # ===========================================================================
@@ -27,7 +30,7 @@ option(MANIP_ENABLE_SO101_DRIVER "Enable SO-101 UART driver" ON)
 if(MANIP_ENABLE_SO101_DRIVER)
     find_path(MOTOR_INCLUDE_DIR motor.h
         HINTS
-            ${CMAKE_CURRENT_SOURCE_DIR}/../../peripherals/motor/include
+            ${MANIP_LOCAL_MOTOR_DIR}/include
             ${MOTOR_INCLUDE_PATH})
 
     if(MOTOR_INCLUDE_DIR)
@@ -50,7 +53,7 @@ if(HAVE_SO101_DRIVER AND NOT TARGET motor)
         CACHE STRING "Enabled motor drivers (semicolon-separated). Empty means auto-detect." FORCE)
     set(BUILD_TESTS OFF CACHE BOOL "Build test programs" FORCE)
     add_subdirectory(
-        ${CMAKE_CURRENT_SOURCE_DIR}/../../peripherals/motor
+        ${MANIP_LOCAL_MOTOR_DIR}
         ${CMAKE_CURRENT_BINARY_DIR}/motor)
 endif()
 
@@ -143,7 +146,7 @@ if(MANIP_BUILD_TESTS)
             CACHE STRING "Enabled motor drivers (semicolon-separated). Empty means auto-detect." FORCE)
         set(BUILD_TESTS OFF CACHE BOOL "Build test programs" FORCE)
         add_subdirectory(
-            ${CMAKE_CURRENT_SOURCE_DIR}/../../peripherals/motor
+            ${MANIP_LOCAL_MOTOR_DIR}
             ${CMAKE_CURRENT_BINARY_DIR}/motor)
     endif()
 
@@ -172,7 +175,7 @@ if(MANIP_BUILD_TESTS)
                 CACHE STRING "Enabled motor drivers (semicolon-separated). Empty means auto-detect." FORCE)
             set(BUILD_TESTS OFF CACHE BOOL "Build test programs" FORCE)
             add_subdirectory(
-                ${CMAKE_CURRENT_SOURCE_DIR}/../../peripherals/motor
+                ${MANIP_LOCAL_MOTOR_DIR}
                 ${CMAKE_CURRENT_BINARY_DIR}/motor)
         endif()
 
@@ -203,7 +206,7 @@ if(MANIP_BUILD_HW_TEST AND HAVE_SO101_DRIVER)
                 CACHE STRING "Enabled motor drivers (semicolon-separated). Empty means auto-detect." FORCE)
             set(BUILD_TESTS OFF CACHE BOOL "Build test programs" FORCE)
             add_subdirectory(
-                ${CMAKE_CURRENT_SOURCE_DIR}/../../peripherals/motor
+                ${MANIP_LOCAL_MOTOR_DIR}
                 ${CMAKE_CURRENT_BINARY_DIR}/motor)
         endif()
         if(NOT TARGET grasp)
