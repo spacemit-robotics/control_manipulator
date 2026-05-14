@@ -24,10 +24,6 @@ manipulator/
 │       └── kinematics_pinocchio.cpp     # Pinocchio 后端
 ├── urdf/
 │   └── so101.urdf                       # SO-101 简化 URDF
-├── third_party/
-│   └── motor/                           # 本地 motor 依赖源码
-│       ├── include/                     # motor 公共头文件
-│       └── src/                         # 电机驱动与适配实现
 ├── test/
 │   ├── test_manipulator.c               # 单元测试
 │   ├── test_kinematics.c                # 运动学测试
@@ -70,7 +66,7 @@ manipulator/
 | pthreads  | 必需      | 系统自带                           |
 | libm      | 必需      | 系统自带                           |
 | pinocchio | 可选      | 源码编译（见下文）                 |
-| motor     | 必需      | `third_party/motor`                |
+| motor     | 必需      | `components/peripherals/motor`                |
 | grasp     | 可选      | `components/control/grasp`         |
 
 ### Pinocchio 源码编译
