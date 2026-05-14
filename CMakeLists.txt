@@ -9,7 +9,7 @@ set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 set(MANIP_LOCAL_MOTOR_DIR
-    ${CMAKE_CURRENT_SOURCE_DIR}/third_party/motor)
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../peripherals/motor)
 
 find_package(Threads REQUIRED)
 
