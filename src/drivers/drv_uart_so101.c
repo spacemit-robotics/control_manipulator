@@ -10,10 +10,10 @@
 * Handles 5 DOF arm joints (motor IDs 1-5).
 * Gripper (motor ID 6) is managed separately by grasp module.
 *
-* Motor API note: Feetech driver uses raw ticks for pos_des:
-*   - pos_des: 0-4095 ticks (mapped from 0-2π rad)
-*   - vel_des: 0-2400 (Feetech speed units)
-*   - state.pos returns raw ticks
+* Motor API note: current Feetech driver uses SI units:
+*   - pos_des: rad
+*   - vel_des: rad/s
+*   - state.pos/state.vel return rad/rad/s
 *
 * Assemble / Calibrate 流程 (参考 so101_ros2):
 *   - assemble: 断电组装 → 配置舵机参数 (PID/加速度/延迟) → 上电
@@ -45,8 +45,10 @@
 
 /* SO-101 机械臂关节数量：5个自由度 */
 #define SO101_ARM_MOTORS 5
-/* 默认运动速度，Feetech 舵机速度单位 (范围 0-2400) */
-#define SO101_DEFAULT_VEL 600
+/* 默认运动速度 (rad/s) */
+#define SO101_DEFAULT_VEL_RAD_S 1.0f
+/* 到位判定阈值 (rad) */
+#define SO101_REACHED_EPS_RAD 0.03f
 
 /* 关节名称 (与 so101_ros2 对齐) */
 static const char *so101_joint_names[SO101_ARM_MOTORS] = {
@@ -845,6 +847,51 @@ static inline float ticks_to_rad(float ticks) {
     return ticks_offset * ((float)(2 * M_PI) / 4096.0f);
 }
 
+/**
+* @brief manipulator 关节角(rad, 以中位为 0) 转 motor API 角度(rad, 0~2π)
+*/
+static inline float joint_rad_to_motor_rad(float joint_rad) {
+    float motor_rad = joint_rad + (float)M_PI;
+
+    while (motor_rad < 0.0f)
+        motor_rad += (float)(2 * M_PI);
+    while (motor_rad >= (float)(2 * M_PI))
+        motor_rad -= (float)(2 * M_PI);
+
+    return motor_rad;
+}
+
+/**
+* @brief motor API 角度(rad, 0~2π) 转 manipulator 关节角(rad, 以中位为 0)
+*/
+static inline float motor_rad_to_joint_rad(float motor_rad) {
+    float joint_rad = motor_rad - (float)M_PI;
+
+    while (joint_rad < -(float)M_PI)
+        joint_rad += (float)(2 * M_PI);
+    while (joint_rad > (float)M_PI)
+        joint_rad -= (float)(2 * M_PI);
+
+    return joint_rad;
+}
+
+static bool so101_targets_reached(const struct so101_priv *p,
+                                    const manip_joint_t *cur_joints) {
+    if (!p || !cur_joints || cur_joints->count == 0)
+        return false;
+
+    for (int i = 0; i < cur_joints->count && i < SO101_ARM_MOTORS; ++i) {
+        float target_joint = motor_rad_to_joint_rad(p->target_cmds[i].pos_des);
+        float err = fabsf(cur_joints->joints[i] - target_joint);
+        if (err > (float)M_PI)
+            err = (float)(2 * M_PI) - err;
+        if (err > SO101_REACHED_EPS_RAD)
+            return false;
+    }
+
+    return true;
+}
+
 /* ==========================================================================
 * Driver Ops
 * ========================================================================== */
@@ -876,9 +923,9 @@ static int so101_move_joints(struct manip_dev *dev,
 
     for (int i = 0; i < count; ++i) {
         cmds[i].mode = MOTOR_MODE_POS;
-        cmds[i].pos_des = rad_to_ticks(target->joints[i]);
+        cmds[i].pos_des = joint_rad_to_motor_rad(target->joints[i]);
         cmds[i].vel_des =
-                (float)SO101_DEFAULT_VEL *
+            SO101_DEFAULT_VEL_RAD_S *
                 (speed_ratio > 0.0f ? speed_ratio : 1.0f);
     }
 
@@ -933,7 +980,7 @@ static void so101_stop(struct manip_dev *dev) {
 /**
 * @brief 获取当前关节状态 — 从舵机读取实际位置
 *
-* 批量读取 5 个舵机的实际刻度值，转换为弧度后存入 dev->cur_joints。
+* 批量读取 5 个舵机的实际关节角（rad），存入 dev->cur_joints。
 * FK（正运动学）未实现，out_pose 返回全零。
 *
 * @param dev        设备句柄
@@ -957,7 +1004,7 @@ static int so101_get_state(struct manip_dev *dev,
 
     dev->cur_joints.count = SO101_ARM_MOTORS;
     for (int i = 0; i < SO101_ARM_MOTORS; ++i)
-        dev->cur_joints.joints[i] = ticks_to_rad(states[i].pos);
+        dev->cur_joints.joints[i] = motor_rad_to_joint_rad(states[i].pos);
 
     if (out_joints)
         *out_joints = dev->cur_joints;
@@ -1015,7 +1062,16 @@ static void so101_tick(struct manip_dev *dev, float dt_s) {
     }
 
     /* Refresh state from hardware */
-    so101_get_state(dev, NULL, NULL);
+    if (so101_get_state(dev, NULL, NULL) != MANIP_OK)
+        return;
+
+    if (dev->state == MANIP_MOVING && p->line.total == 0 && p->has_target) {
+        pthread_mutex_lock(&dev->state_lock);
+        if (so101_targets_reached(p, &dev->cur_joints)) {
+            dev->state = MANIP_IDLE;
+        }
+        pthread_mutex_unlock(&dev->state_lock);
+    }
 }
 
 /**
@@ -1124,7 +1180,7 @@ static int so101_move_line(struct manip_dev *dev,
 
     /* --- 3+4. 插值 + IK --- */
     kin_joints_t q_seed = q_cur; /* IK 种子 */
-    float vel = (float)SO101_DEFAULT_VEL *
+    float vel = SO101_DEFAULT_VEL_RAD_S *
                             (speed_ratio > 0.0f ? speed_ratio : 1.0f);
 
     for (int s = 0; s < steps; s++) {
@@ -1167,8 +1223,8 @@ static int so101_move_line(struct manip_dev *dev,
         /* 转换为 motor_cmd 并存入轨迹 */
         for (int j = 0; j < SO101_ARM_MOTORS; j++) {
             p->line.steps[s][j].mode = MOTOR_MODE_POS;
-            p->line.steps[s][j].pos_des =
-                    rad_to_ticks((float)q_out.q[j]);
+                p->line.steps[s][j].pos_des =
+                    joint_rad_to_motor_rad((float)q_out.q[j]);
             p->line.steps[s][j].vel_des = vel;
         }
 
@@ -1291,18 +1347,22 @@ static struct manip_dev *so101_factory(const char *name, void *args) {
     so101_enable_torque_all(p->motors, SO101_ARM_MOTORS);
     p->assembled = true;
     p->has_target = false;  /* 初始化运动控制状态 */
+    dev->cur_joints.count = SO101_ARM_MOTORS;
 
     /* 如果加载了校准数据，发送命令让关节移动到零位 (0 rad) */
     if (p->calib.valid) {
         struct motor_cmd cmds[SO101_ARM_MOTORS];
         for (int i = 0; i < SO101_ARM_MOTORS; i++) {
             cmds[i].mode = MOTOR_MODE_POS;
-            cmds[i].pos_des = rad_to_ticks(0.0f);  /* 0 rad → 2047 ticks */
-            cmds[i].vel_des = (float)SO101_DEFAULT_VEL;
+            cmds[i].pos_des = joint_rad_to_motor_rad(0.0f);
+            cmds[i].vel_des = SO101_DEFAULT_VEL_RAD_S;
         }
         motor_set_cmds(p->motors, cmds, SO101_ARM_MOTORS);
-        printf("[SO101] 已发送归零命令 (目标: 0 rad = 2047 ticks)\n");
+        printf("[SO101] 已发送归零命令 (关节目标: 0 rad)\n");
     }
+
+    /* 同步一次初始状态，避免 move_line/FK 使用未初始化关节角 */
+    so101_get_state(dev, NULL, NULL);
 
     dev->ops = &so101_ops;
     dev->running = true;

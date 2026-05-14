@@ -66,7 +66,7 @@ manipulator/
 | pthreads  | 必需      | 系统自带                           |
 | libm      | 必需      | 系统自带                           |
 | pinocchio | 可选      | 源码编译（见下文）                 |
-| motor     | 可选      | `components/peripherals/motor`     |
+| motor     | 必需      | `components/peripherals/motor`                |
 | grasp     | 可选      | `components/control/grasp`         |
 
 ### Pinocchio 源码编译
