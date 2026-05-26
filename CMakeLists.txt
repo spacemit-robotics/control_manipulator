@@ -124,6 +124,7 @@ install(TARGETS manipulator
 install(FILES
     include/manipulator.h
     include/kinematics_interface.h
+    include/so101_utils.h
     DESTINATION include)
 
 install(DIRECTORY urdf/
