@@ -30,14 +30,6 @@
 #include "grasp.h"
 #include "kinematics_interface.h"
 #include "manipulator.h"
-
-struct so101_config {
-    const char *uart_path;
-    uint32_t baud;
-    uint8_t ids[5];
-    const char *urdf_path;
-    const char *kin_solver_name;
-};
 #include "motor.h"
 #include "so101_utils.h"
 #include "sts3215_regs.h"
@@ -71,6 +63,7 @@ static struct manip_dev *g_arm = NULL;
 static struct grasp_dev *g_grip = NULL;
 static kin_solver_t *g_kin_solver = NULL;
 static volatile int g_running = 1;
+static const char *g_uart_path = "/dev/ttyACM0";
 
 /* Ctrl+C 信号处理：急停并退出 */
 static void signal_handler(int sig) {
@@ -131,6 +124,33 @@ static void print_grasp_state(struct grasp_dev *grip) {
     if (grasp_get_feedback(grip, &pos, &load) == GRASP_OK) {
         printf("  夹爪位置: %.1f%%  负载: %.1f\n", pos * 100.0f, load);
     }
+}
+
+static struct manip_dev *alloc_arm_on_current_port(void) {
+    struct so101_config arm_cfg = {
+        .uart_path = g_uart_path,
+        .baud = 1000000,
+        .ids = {1, 2, 3, 4, 5},
+        .urdf_path = NULL,
+        .kin_solver_name = NULL,
+    };
+
+    return manip_alloc("so101", &arm_cfg);
+}
+
+static struct grasp_dev *alloc_grip_on_current_port(void) {
+    struct so101_gripper_config grip_cfg = {
+        .uart_path = g_uart_path,
+        .baud = 1000000,
+        .id = 6,
+        .grasp_cfg = {
+            .max_effort = 1.0f,
+            .hold_threshold = 100.0f,
+            .timeout_ms = 5000,
+        },
+    };
+
+    return grasp_alloc("so101_gripper", &grip_cfg);
 }
 
 /* 等待用户按回车 */
@@ -549,11 +569,11 @@ static void test_assemble(void) {
 
     /* 创建临时电机句柄 */
     struct motor_dev *motors[SO101_ARM_MOTOR_COUNT];
-    const char *uart_path = "/dev/ttyACM0";
 
     for (int i = 0; i < SO101_ARM_MOTOR_COUNT; i++) {
         motors[i] = motor_alloc_uart(
-                "drv_uart_feetech", uart_path, 1000000, (uint8_t)(i + 1), NULL);
+                "drv_uart_feetech", g_uart_path, 1000000,
+                (uint8_t)(i + 1), NULL);
         if (!motors[i]) {
             fprintf(stderr, "  [错误] 分配电机 %d 失败\n", i + 1);
             motor_free(motors, (uint32_t)i);
@@ -580,14 +600,14 @@ static void test_assemble(void) {
 reinit:
     /* 重新初始化机械臂和夹爪 */
     printf("\n  重新初始化机械臂...\n");
-    g_arm = manip_alloc("so101", NULL);
+    g_arm = alloc_arm_on_current_port();
     if (g_arm)
         printf("  ✓ 机械臂就绪\n");
     else
         printf("  ✗ 机械臂初始化失败\n");
 
     printf("  重新初始化夹爪...\n");
-    g_grip = grasp_alloc("so101_gripper", NULL);
+    g_grip = alloc_grip_on_current_port();
     if (g_grip)
         printf("  ✓ 夹爪就绪\n");
     else
@@ -646,11 +666,11 @@ static void test_calibrate(void) {
 
     /* 创建临时电机句柄 */
     struct motor_dev *motors[SO101_ARM_MOTOR_COUNT];
-    const char *uart_path = "/dev/ttyACM0";
 
     for (int i = 0; i < SO101_ARM_MOTOR_COUNT; i++) {
         motors[i] = motor_alloc_uart(
-                "drv_uart_feetech", uart_path, 1000000, (uint8_t)(i + 1), NULL);
+                "drv_uart_feetech", g_uart_path, 1000000,
+                (uint8_t)(i + 1), NULL);
         if (!motors[i]) {
             fprintf(stderr, "  [错误] 分配电机 %d 失败\n", i + 1);
             motor_free(motors, (uint32_t)i);
@@ -686,14 +706,14 @@ static void test_calibrate(void) {
 reinit:
     /* 重新初始化 */
     printf("\n  重新初始化机械臂...\n");
-    g_arm = manip_alloc("so101", NULL);
+    g_arm = alloc_arm_on_current_port();
     if (g_arm)
         printf("  ✓ 机械臂就绪 (校准数据已自动加载)\n");
     else
         printf("  ✗ 机械臂初始化失败\n");
 
     printf("  重新初始化夹爪...\n");
-    g_grip = grasp_alloc("so101_gripper", NULL);
+    g_grip = alloc_grip_on_current_port();
     if (g_grip)
         printf("  ✓ 夹爪就绪\n");
     else
@@ -721,11 +741,11 @@ static void test_read_registers(void) {
     }
 
     struct motor_dev *motors[SO101_ARM_MOTOR_COUNT];
-    const char *uart_path = "/dev/ttyACM0";
 
     for (int i = 0; i < SO101_ARM_MOTOR_COUNT; i++) {
         motors[i] = motor_alloc_uart(
-                "drv_uart_feetech", uart_path, 1000000, (uint8_t)(i + 1), NULL);
+                "drv_uart_feetech", g_uart_path, 1000000,
+                (uint8_t)(i + 1), NULL);
         if (!motors[i]) {
             fprintf(stderr, "  [错误] 分配电机 %d 失败\n", i + 1);
             motor_free(motors, (uint32_t)i);
@@ -768,8 +788,8 @@ static void test_read_registers(void) {
 
 reinit:
     /* 重新初始化 */
-    g_arm = manip_alloc("so101", NULL);
-    g_grip = grasp_alloc("so101_gripper", NULL);
+    g_arm = alloc_arm_on_current_port();
+    g_grip = alloc_grip_on_current_port();
 }
 
 /**
@@ -1236,14 +1256,13 @@ static void print_menu(void) {
 
 int main(int argc, char *argv[]) {
     /* 解析命令行参数 */
-    const char *uart_path = "/dev/ttyACM0";
     if (argc > 1) {
-        uart_path = argv[1];
+        g_uart_path = argv[1];
     }
 
     printf("============================================\n");
     printf("  SO-101 机械臂硬件测试程序\n");
-    printf("  串口: %s\n", uart_path);
+    printf("  串口: %s\n", g_uart_path);
     printf("  波特率: 1000000\n");
     printf("  关节 ID: 1-5, 夹爪 ID: 6\n");
     printf("============================================\n\n");
@@ -1257,19 +1276,12 @@ int main(int argc, char *argv[]) {
     * ----------------------------------------------------------- */
     printf("[1/2] 初始化机械臂 (5 DOF)...\n");
 
-    struct so101_config arm_cfg = {
-        .uart_path = uart_path,
-        .baud = 1000000,
-        .ids = {1, 2, 3, 4, 5},
-        .urdf_path = NULL,
-        .kin_solver_name = NULL,
-    };
-    g_arm = manip_alloc("so101", &arm_cfg);
+    g_arm = alloc_arm_on_current_port();
     if (!g_arm) {
         fprintf(stderr, "[错误] 机械臂初始化失败!\n");
         fprintf(stderr, "  可能原因:\n");
         fprintf(stderr, "  - 串口 %s 不存在 "
-                        "(检查 ls /dev/ttyACM*)\n", uart_path);
+                        "(检查 ls /dev/ttyACM*)\n", g_uart_path);
         fprintf(stderr, "  - 权限不足 (用 sudo 运行或加入 dialout 组)\n");
         fprintf(stderr, "  - 舵机未上电或接线错误\n");
         fprintf(stderr, "  - 波特率不匹配 (默认 1Mbaud)\n");
@@ -1281,7 +1293,7 @@ int main(int argc, char *argv[]) {
     * 初始化夹爪
     * ----------------------------------------------------------- */
     printf("[2/2] 初始化夹爪 (ID=6)...\n");
-    g_grip = grasp_alloc("so101_gripper", NULL);
+    g_grip = alloc_grip_on_current_port();
     if (!g_grip) {
         fprintf(stderr, "[错误] 夹爪初始化失败!\n");
         return 1;

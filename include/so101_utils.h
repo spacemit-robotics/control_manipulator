@@ -26,6 +26,20 @@ struct motor_dev; /* 前置声明 */
 #define SO101_DEFAULT_CALIBRATION_PATH "./config/so101_calibration.json"
 #define SO101_DEFAULT_URDF_PATH        "./urdf/so101.urdf"
 
+/**
+* @brief SO-101 机械臂配置参数
+*
+* 通过 manip_alloc("so101", &cfg) 的 args 参数传入。
+* 如果 args 为 NULL，驱动会使用默认值。
+*/
+struct so101_config {
+    const char *uart_path;
+    uint32_t baud;
+    uint8_t ids[SO101_ARM_MOTOR_COUNT];
+    const char *urdf_path;
+    const char *kin_solver_name;
+};
+
 /* SO-101 运动链定义 (与 URDF 中的 link name 对应) */
 #define SO101_BASE_LINK   "base_link"
 #define SO101_TIP_LINK    "gripper_frame_link"  /* 末端 TCP (含固定偏移) */

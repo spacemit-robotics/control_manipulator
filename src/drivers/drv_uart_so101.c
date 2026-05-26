@@ -63,29 +63,6 @@ static const char *so101_joint_names[SO101_ARM_MOTORS] = {
 * Configuration (passed via manip_alloc args)
 * ========================================================================== */
 
-/**
-* @brief SO-101 机械臂配置参数
-*
-* 通过 manip_alloc 的 args 参数传入。
-* 如果 args 为 NULL，使用默认值 (ttyACM0, 1Mbaud, ID 1-5)。
-*
-* 用法:
-*   struct so101_config cfg = {
-*       .uart_path = "/dev/ttyACM0",  // 串口设备路径
-*       .baud = 1000000,              // 波特率
-*       .ids = {1, 2, 3, 4, 5},       // 5个关节的舵机 ID
-*       .kin_solver_name = NULL,       // 默认 pinocchio，或指定如 "kdl"
-*   };
-*   struct manip_dev *arm = manip_alloc("so101", &cfg);
-*/
-struct so101_config {
-    const char *uart_path;             /* 串口设备路径，如 "/dev/ttyACM0" */
-    uint32_t baud;                     /* 波特率，如 1000000 */
-    uint8_t ids[SO101_ARM_MOTORS];     /* 5 个关节对应的舵机 ID */
-    const char *urdf_path;             /* URDF 文件路径，NULL 使用默认值 */
-    const char *kin_solver_name;       /* 求解器名称，NULL 使用默认 */
-};
-
 /* ==========================================================================
 * Calibration Data
 * ========================================================================== */
