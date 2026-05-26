@@ -1,0 +1,63 @@
+## Copyright (C) 2026 SpacemiT (Hangzhou) Technology Co. Ltd.
+## SPDX-License-Identifier: Apache-2.0
+
+module: components/control/manipulator
+
+tests:
+  - name: manipulator-dummy-functional
+    description: >-
+      Builds the manipulator component with dummy driver and dummy kinematics
+      only, then runs the framework unit test binary.
+    category: functional
+    scopes: [pr]
+    timeout_s: 900
+    workdir: sdk
+    artifacts:
+      - output/test/pr/components__control__manipulator/modules/components__control__manipulator/logs/manipulator_dummy_functional.log
+    command: |
+      bash components/control/manipulator/test/test_dummy_functional.sh
+
+  - name: manipulator-dummy-kinematics-functional
+    description: >-
+      Verifies the dummy kinematics backend returns the expected NOSYS
+      behavior and default joint count without requiring Pinocchio.
+    category: functional
+    scopes: [pr]
+    timeout_s: 900
+    workdir: sdk
+    artifacts:
+      - output/test/pr/components__control__manipulator/modules/components__control__manipulator/logs/manipulator_dummy_kinematics.log
+    command: |
+      bash components/control/manipulator/test/test_dummy_kinematics.sh
+
+  - name: manipulator-dummy-performance
+    description: >-
+      Measures dummy manipulator joint-command latency and fails when the
+      average exceeds MANIP_DUMMY_MAX_AVG_US.
+    category: performance
+    scopes: [scheduled, release]
+    timeout_s: 1200
+    workdir: sdk
+    artifacts:
+      - output/test/scheduled/components__control__manipulator/modules/components__control__manipulator/logs/manipulator_dummy_performance.log
+      - output/test/release/components__control__manipulator/modules/components__control__manipulator/logs/manipulator_dummy_performance.log
+    command: |
+      bash components/control/manipulator/test/test_dummy_performance.sh
+
+  - name: manipulator-so101-hardware-smoke
+    description: >-
+      Manually verifies the SO-101 manipulator hardware test binary can start
+      with the requested serial port and present the interactive menu.
+    category: functional
+    scopes: [manual]
+    timeout_s: 1200
+    workdir: sdk
+    requires:
+      hardware:
+        - >-
+          SO101 arm and gripper on /dev/ttyACM* or /dev/ttyUSB*
+      supervision: true
+    artifacts:
+      - output/test/manual/components__control__manipulator/modules/components__control__manipulator/logs/manipulator_so101_hardware_smoke.log
+    command: |
+      bash components/control/manipulator/test/test_hw_so101_smoke.sh

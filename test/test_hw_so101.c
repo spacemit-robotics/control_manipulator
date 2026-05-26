@@ -30,6 +30,14 @@
 #include "grasp.h"
 #include "kinematics_interface.h"
 #include "manipulator.h"
+
+struct so101_config {
+    const char *uart_path;
+    uint32_t baud;
+    uint8_t ids[5];
+    const char *urdf_path;
+    const char *kin_solver_name;
+};
 #include "motor.h"
 #include "so101_utils.h"
 #include "sts3215_regs.h"
@@ -1249,18 +1257,14 @@ int main(int argc, char *argv[]) {
     * ----------------------------------------------------------- */
     printf("[1/2] 初始化机械臂 (5 DOF)...\n");
 
-    /*
-    * 如果命令行指定了非默认串口，需要构造 config。
-    * so101_config 定义在 drv_uart_so101.c 中，这里通过 void* 透传。
-    * 默认情况 (ttyACM0) 传 NULL 即可。
-    *
-    * 注意: so101_config 结构体定义在驱动内部，外部不可直接引用。
-    * 如果需要自定义串口，有两种方式:
-    *   a) 修改驱动默认值
-    *   b) 将 config 结构体移到公共头文件
-    * 这里简化处理：如果使用默认串口就传 NULL。
-    */
-    g_arm = manip_alloc("so101", NULL);
+    struct so101_config arm_cfg = {
+        .uart_path = uart_path,
+        .baud = 1000000,
+        .ids = {1, 2, 3, 4, 5},
+        .urdf_path = NULL,
+        .kin_solver_name = NULL,
+    };
+    g_arm = manip_alloc("so101", &arm_cfg);
     if (!g_arm) {
         fprintf(stderr, "[错误] 机械臂初始化失败!\n");
         fprintf(stderr, "  可能原因:\n");
@@ -1283,15 +1287,6 @@ int main(int argc, char *argv[]) {
         return 1;
     }
     printf("  ✓ 夹爪初始化成功\n");
-
-    /* -----------------------------------------------------------
-    * 初始化运动学求解器 (可选)
-    * ----------------------------------------------------------- */
-    printf("[3/3] 初始化运动学求解器...\n");
-    g_kin_solver = kin_create(NULL,
-                                SO101_DEFAULT_URDF_PATH,
-                                SO101_BASE_LINK,
-                                SO101_TIP_LINK);
 
     /* -----------------------------------------------------------
     * 初始化运动学求解器 (可选)
