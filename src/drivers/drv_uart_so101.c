@@ -389,8 +389,10 @@ static int so101_load_calibration(struct so101_calibration *calib,
 
     char line[256];
     int loaded = 0;
+    bool seen[SO101_ARM_MOTOR_COUNT];
+    memset(seen, 0, sizeof(seen));
 
-    while (fgets(line, sizeof(line), f) && loaded < SO101_ARM_MOTOR_COUNT) {
+    while (fgets(line, sizeof(line), f)) {
         /* 查找 "homing_offset" 关键字来定位数据行 */
         char *p = strstr(line, "homing_offset");
         if (!p)
@@ -408,6 +410,11 @@ static int so101_load_calibration(struct so101_calibration *calib,
             fprintf(stderr, "[SO101] 校准 id=%d 越界，跳过\n", id);
             continue;
         }
+        if (seen[idx]) {
+            fprintf(stderr, "[SO101] 校准 id=%d 重复，跳过\n", id);
+            continue;
+        }
+        seen[idx] = true;
 
         /* 解析 homing_offset, range_min, range_max */
         int hofs = 0;
