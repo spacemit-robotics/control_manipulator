@@ -136,6 +136,7 @@ install(DIRECTORY urdf/
 
 option(MANIP_BUILD_TESTS   "Build unit tests"                      ON)
 option(MANIP_BUILD_HW_TEST "Build SO-101 hardware test program"    OFF)
+option(MANIP_BUILD_BENCHMARKS "Build manipulator benchmark programs" ON)
 
 if(MANIP_BUILD_TESTS)
     enable_testing()
@@ -194,6 +195,20 @@ if(MANIP_BUILD_TESTS)
         set_target_properties(test_kinematics PROPERTIES LINKER_LANGUAGE CXX)
         add_test(NAME kinematics_test COMMAND test_kinematics)
     endif()
+
+    add_executable(test_dummy_kinematics_api test/test_dummy_kinematics_api.c)
+    target_link_libraries(test_dummy_kinematics_api PRIVATE
+        manipulator
+        Threads::Threads m)
+    set_target_properties(test_dummy_kinematics_api PROPERTIES LINKER_LANGUAGE CXX)
+endif()
+
+if(MANIP_BUILD_BENCHMARKS)
+    add_executable(benchmark_dummy_manipulator test/benchmark_dummy_manipulator.c)
+    target_link_libraries(benchmark_dummy_manipulator PRIVATE
+        manipulator
+        Threads::Threads m)
+    set_target_properties(benchmark_dummy_manipulator PROPERTIES LINKER_LANGUAGE CXX)
 endif()
 
 if(MANIP_BUILD_HW_TEST AND HAVE_SO101_DRIVER)
