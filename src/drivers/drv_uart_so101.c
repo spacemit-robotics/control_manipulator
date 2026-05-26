@@ -43,15 +43,13 @@
 #endif
 
 
-/* SO-101 机械臂关节数量：5个自由度 */
-#define SO101_ARM_MOTORS 5
 /* 默认运动速度 (rad/s) */
 #define SO101_DEFAULT_VEL_RAD_S 1.0f
 /* 到位判定阈值 (rad) */
 #define SO101_REACHED_EPS_RAD 0.03f
 
 /* 关节名称 (与 so101_ros2 对齐) */
-static const char *so101_joint_names[SO101_ARM_MOTORS] = {
+static const char *so101_joint_names[SO101_ARM_MOTOR_COUNT] = {
     "shoulder_pan",   /* ID 1 */
     "shoulder_lift",  /* ID 2 */
     "elbow_flex",     /* ID 3 */
@@ -85,7 +83,7 @@ static const char *so101_joint_names[SO101_ARM_MOTORS] = {
 * tick() 逐步发送，实现 TCP 直线运动。
 */
 struct so101_line_traj {
-    struct motor_cmd steps[SO101_LINE_MAX_STEPS][SO101_ARM_MOTORS];
+    struct motor_cmd steps[SO101_LINE_MAX_STEPS][SO101_ARM_MOTOR_COUNT];
     int total;     /* 总步数   (0 = 无轨迹) */
     int current;   /* 当前步索引 */
 };
@@ -97,12 +95,12 @@ struct so101_line_traj {
 * 分别对应 5 个关节舵机。
 */
 struct so101_priv {
-    struct motor_dev *motors[SO101_ARM_MOTORS]; /* 电机句柄 */
+    struct motor_dev *motors[SO101_ARM_MOTOR_COUNT]; /* 电机句柄 */
     struct so101_calibration calib;             /* 校准数据 */
     bool assembled;                            /* 已完成 assemble */
 
     /* 运动控制状态 - 用于 tick() 持续发送命令 */
-    struct motor_cmd target_cmds[SO101_ARM_MOTORS]; /* 目标命令 */
+    struct motor_cmd target_cmds[SO101_ARM_MOTOR_COUNT]; /* 目标命令 */
     bool has_target;                                /* 有待执行目标 */
 
     /* 直线轨迹 (move_line) */
@@ -359,14 +357,14 @@ static int so101_save_calibration(
     }
 
     fprintf(f, "{\n");
-    for (int i = 0; i < SO101_ARM_MOTORS; i++) {
+    for (int i = 0; i < SO101_ARM_MOTOR_COUNT; i++) {
         const struct so101_joint_calib *jc = &calib->joints[i];
         fprintf(f,
             "  \"%s\": {\"id\": %d, \"homing_offset\": %d, "
             "\"range_min\": %u, \"range_max\": %u}%s\n",
             so101_joint_names[i], i + 1, jc->homing_offset,
             jc->range_min, jc->range_max,
-            (i < SO101_ARM_MOTORS - 1) ? "," : "");
+            (i < SO101_ARM_MOTOR_COUNT - 1) ? "," : "");
     }
     fprintf(f, "}\n");
     fclose(f);
@@ -392,7 +390,7 @@ static int so101_load_calibration(struct so101_calibration *calib,
     char line[256];
     int loaded = 0;
 
-    while (fgets(line, sizeof(line), f) && loaded < SO101_ARM_MOTORS) {
+    while (fgets(line, sizeof(line), f) && loaded < SO101_ARM_MOTOR_COUNT) {
         /* 查找 "homing_offset" 关键字来定位数据行 */
         char *p = strstr(line, "homing_offset");
         if (!p)
@@ -422,7 +420,7 @@ static int so101_load_calibration(struct so101_calibration *calib,
 
         /* 将 id (1-based) 映射到数组索引 (0-based) */
         int idx = id - 1;
-        if (idx >= 0 && idx < SO101_ARM_MOTORS) {
+        if (idx >= 0 && idx < SO101_ARM_MOTOR_COUNT) {
             calib->joints[idx].homing_offset = (int16_t)hofs;
             calib->joints[idx].range_min = (uint16_t)rmin;
             calib->joints[idx].range_max = (uint16_t)rmax;
@@ -431,14 +429,14 @@ static int so101_load_calibration(struct so101_calibration *calib,
     }
     fclose(f);
 
-    if (loaded == SO101_ARM_MOTORS) {
+    if (loaded == SO101_ARM_MOTOR_COUNT) {
         calib->valid = true;
         printf("[SO101] 已加载校准数据: %s (%d 个关节)\n", path, loaded);
         return 0;
     }
 
     fprintf(stderr, "[SO101] 校准文件不完整: 只找到 %d/%d 个关节\n",
-                    loaded, SO101_ARM_MOTORS);
+                    loaded, SO101_ARM_MOTOR_COUNT);
     return -1;
 }
 
@@ -455,7 +453,7 @@ static int so101_write_calibration_to_motors(
     if (!calib->valid)
         return -1;
 
-    for (int i = 0; i < SO101_ARM_MOTORS; i++) {
+    for (int i = 0; i < SO101_ARM_MOTOR_COUNT; i++) {
         const struct so101_joint_calib *jc = &calib->joints[i];
 
         /* 写入前先关闭扭矩 (解锁 EPROM) */
@@ -516,7 +514,7 @@ static int so101_write_calibration_to_motors(
 * @return 0 成功，-1 失败
 */
 int so101_assemble(struct motor_dev **motors, int count) {
-    if (!motors || count != SO101_ARM_MOTORS)
+    if (!motors || count != SO101_ARM_MOTOR_COUNT)
         return -1;
 
     printf("[SO101] ===== 开始组装过程 =====\n");
@@ -575,7 +573,7 @@ static int so101_record_homing_offsets(struct motor_dev **motors,
     * 清零后 Present_Position = Actual_Position，确保读到真实物理位置。
     */
     printf("[SO101]   清除旧 Homing_Offset...\n");
-    for (int i = 0; i < SO101_ARM_MOTORS; i++) {
+    for (int i = 0; i < SO101_ARM_MOTOR_COUNT; i++) {
         /*
         * 只解锁 EPROM 写入偏移清零，不要重新使能扭矩！
         * 校准模式下扭矩必须保持关闭，否则舵机会跳到上次的目标位置。
@@ -586,7 +584,7 @@ static int so101_record_homing_offsets(struct motor_dev **motors,
     }
     usleep(100000); /* 等待 100ms 让寄存器生效 */
 
-    for (int i = 0; i < SO101_ARM_MOTORS; i++) {
+    for (int i = 0; i < SO101_ARM_MOTOR_COUNT; i++) {
         int pos = reg_read_word(motors[i], REG_PRESENT_POS_L);
         if (pos < 0) {
             fprintf(stderr, "[SO101] 读取位置失败: %s\n", so101_joint_names[i]);
@@ -621,7 +619,7 @@ static int so101_record_ranges(struct motor_dev **motors,
                                 bool interactive) {
     if (!interactive) {
         /* 非交互模式：使用合理的默认行程 */
-        for (int i = 0; i < SO101_ARM_MOTORS; i++) {
+        for (int i = 0; i < SO101_ARM_MOTOR_COUNT; i++) {
             calib->joints[i].range_min = 100;
             calib->joints[i].range_max = 3995;
             printf("[SO101]   %s: range=[%u, %u] (默认)\n",
@@ -636,7 +634,7 @@ static int so101_record_ranges(struct motor_dev **motors,
     printf("[SO101] 交互式行程记录 — 请手动转动关节到极限位置\n");
     printf("[SO101] (扭矩已关闭，可自由转动)\n\n");
 
-    for (int i = 0; i < SO101_ARM_MOTORS; i++) {
+    for (int i = 0; i < SO101_ARM_MOTOR_COUNT; i++) {
         printf("[SO101] ---- %s (ID=%d) ----\n", so101_joint_names[i], i + 1);
 
         printf("[SO101] 将该关节转到 最小位置，然后按 Enter...");
@@ -700,7 +698,7 @@ int so101_calibrate(struct motor_dev **motors,
 
     /* Step 1: 关闭扭矩 */
     printf("[SO101] 步骤 1/5: 关闭扭矩...\n");
-    if (so101_disable_torque_all(motors, SO101_ARM_MOTORS) != 0)
+    if (so101_disable_torque_all(motors, SO101_ARM_MOTOR_COUNT) != 0)
         return -1;
 
     if (interactive) {
@@ -725,7 +723,7 @@ int so101_calibrate(struct motor_dev **motors,
     * 注意：保持扭矩关闭，用户仍然可以自由转动关节。
     */
     printf("[SO101]   写入 homing_offset 到舵机 (保持扭矩关闭)...\n");
-    for (int i = 0; i < SO101_ARM_MOTORS; i++) {
+    for (int i = 0; i < SO101_ARM_MOTOR_COUNT; i++) {
         /* EPROM 已在 so101_record_homing_offsets 中解锁 (torque=0) */
         uint16_t ofs_encoded = encode_sign_magnitude(
                 calib->joints[i].homing_offset, STS3215_HOMING_OFFSET_SIGN_BIT);
@@ -740,7 +738,7 @@ int so101_calibrate(struct motor_dev **motors,
 
     /* 验证：读取当前位置应为 ~2047 (中位已对齐) */
     printf("[SO101]   验证 offset 生效 (期望 Present_Position ≈ 2047):\n");
-    for (int i = 0; i < SO101_ARM_MOTORS; i++) {
+    for (int i = 0; i < SO101_ARM_MOTOR_COUNT; i++) {
         int pos = reg_read_word(motors[i], REG_PRESENT_POS_L);
         printf("[SO101]     %s: %d\n", so101_joint_names[i], pos);
     }
@@ -857,7 +855,7 @@ static bool so101_targets_reached(const struct so101_priv *p,
     if (!p || !cur_joints || cur_joints->count == 0)
         return false;
 
-    for (int i = 0; i < cur_joints->count && i < SO101_ARM_MOTORS; ++i) {
+    for (int i = 0; i < cur_joints->count && i < SO101_ARM_MOTOR_COUNT; ++i) {
         float target_joint = motor_rad_to_joint_rad(p->target_cmds[i].pos_des);
         float err = fabsf(cur_joints->joints[i] - target_joint);
         if (err > (float)M_PI)
@@ -892,10 +890,10 @@ static int so101_move_joints(struct manip_dev *dev,
 
     struct so101_priv *p = (struct so101_priv *)dev->priv_data;
     uint8_t count = target->count;
-    if (count > SO101_ARM_MOTORS)
-        count = SO101_ARM_MOTORS;
+    if (count > SO101_ARM_MOTOR_COUNT)
+        count = SO101_ARM_MOTOR_COUNT;
 
-    struct motor_cmd cmds[SO101_ARM_MOTORS];
+    struct motor_cmd cmds[SO101_ARM_MOTOR_COUNT];
     memset(cmds, 0, sizeof(cmds));
 
     for (int i = 0; i < count; ++i) {
@@ -942,7 +940,7 @@ static void so101_stop(struct manip_dev *dev) {
     struct so101_priv *p = (struct so101_priv *)dev->priv_data;
 
     /* 直接关闭每个舵机的扭矩 */
-    so101_disable_torque_all(p->motors, SO101_ARM_MOTORS);
+    so101_disable_torque_all(p->motors, SO101_ARM_MOTOR_COUNT);
 
     /* 清除目标命令和直线轨迹 */
     p->has_target = false;
@@ -972,15 +970,15 @@ static int so101_get_state(struct manip_dev *dev,
         return MANIP_ERR_PARAM;
 
     struct so101_priv *p = (struct so101_priv *)dev->priv_data;
-    struct motor_state states[SO101_ARM_MOTORS];
+    struct motor_state states[SO101_ARM_MOTOR_COUNT];
 
-    if (motor_get_states(p->motors, states, SO101_ARM_MOTORS) != 0)
+    if (motor_get_states(p->motors, states, SO101_ARM_MOTOR_COUNT) != 0)
         return MANIP_ERR_CONNECT;
 
     pthread_mutex_lock(&dev->state_lock);
 
-    dev->cur_joints.count = SO101_ARM_MOTORS;
-    for (int i = 0; i < SO101_ARM_MOTORS; ++i)
+    dev->cur_joints.count = SO101_ARM_MOTOR_COUNT;
+    for (int i = 0; i < SO101_ARM_MOTOR_COUNT; ++i)
         dev->cur_joints.joints[i] = motor_rad_to_joint_rad(states[i].pos);
 
     if (out_joints)
@@ -1019,7 +1017,7 @@ static void so101_tick(struct manip_dev *dev, float dt_s) {
             int idx = p->line.current;
             motor_set_cmds(p->motors,
                                             p->line.steps[idx],
-                                            SO101_ARM_MOTORS);
+                                            SO101_ARM_MOTOR_COUNT);
             if (idx + 1 < p->line.total) {
                 p->line.current = idx + 1;
             } else {
@@ -1034,7 +1032,7 @@ static void so101_tick(struct manip_dev *dev, float dt_s) {
             /* PTP 模式：持续发送目标 */
             motor_set_cmds(p->motors,
                                             p->target_cmds,
-                                            SO101_ARM_MOTORS);
+                                            SO101_ARM_MOTOR_COUNT);
         }
     }
 
@@ -1065,7 +1063,7 @@ static void so101_free(struct manip_dev *dev) {
 
     struct so101_priv *p = (struct so101_priv *)dev->priv_data;
     if (p) {
-        motor_free(p->motors, SO101_ARM_MOTORS);
+        motor_free(p->motors, SO101_ARM_MOTOR_COUNT);
         /* priv_data + kin_solver freed by manip_dev_free_default */
     }
     manip_dev_free_default(dev);
@@ -1088,12 +1086,12 @@ static int so101_set_teach_mode(struct manip_dev *dev, bool enable) {
 
     int ret;
     if (enable) {
-        ret = so101_disable_torque_all(p->motors, SO101_ARM_MOTORS);
+        ret = so101_disable_torque_all(p->motors, SO101_ARM_MOTOR_COUNT);
         pthread_mutex_lock(&dev->state_lock);
         dev->state = MANIP_IDLE;
         pthread_mutex_unlock(&dev->state_lock);
     } else {
-        ret = so101_enable_torque_all(p->motors, SO101_ARM_MOTORS);
+        ret = so101_enable_torque_all(p->motors, SO101_ARM_MOTOR_COUNT);
     }
 
     return (ret == 0) ? MANIP_OK : MANIP_ERR_CONNECT;
@@ -1133,8 +1131,8 @@ static int so101_move_line(struct manip_dev *dev,
 
     /* --- 1. FK: 获取当前末端位姿 --- */
     kin_joints_t q_cur;
-    q_cur.count = (uint8_t)SO101_ARM_MOTORS;
-    for (int i = 0; i < SO101_ARM_MOTORS; i++)
+    q_cur.count = (uint8_t)SO101_ARM_MOTOR_COUNT;
+    for (int i = 0; i < SO101_ARM_MOTOR_COUNT; i++)
         q_cur.q[i] = (double)dev->cur_joints.joints[i];
 
     kin_pose_t start;
@@ -1198,7 +1196,7 @@ static int so101_move_line(struct manip_dev *dev,
         }
 
         /* 转换为 motor_cmd 并存入轨迹 */
-        for (int j = 0; j < SO101_ARM_MOTORS; j++) {
+        for (int j = 0; j < SO101_ARM_MOTOR_COUNT; j++) {
             p->line.steps[s][j].mode = MOTOR_MODE_POS;
                 p->line.steps[s][j].pos_des =
                     joint_rad_to_motor_rad((float)q_out.q[j]);
@@ -1267,7 +1265,7 @@ static struct manip_dev *so101_factory(const char *name, void *args) {
         /* Defaults: /dev/ttyACM0, 1Mbaud, IDs 1-5 */
         cfg.uart_path = "/dev/ttyACM0";
         cfg.baud = 1000000;
-        for (int i = 0; i < SO101_ARM_MOTORS; ++i)
+        for (int i = 0; i < SO101_ARM_MOTOR_COUNT; ++i)
             cfg.ids[i] = (uint8_t)(i + 1);
         cfg.urdf_path = NULL;
         cfg.kin_solver_name = NULL;
@@ -1284,7 +1282,7 @@ static struct manip_dev *so101_factory(const char *name, void *args) {
     struct so101_priv *p = (struct so101_priv *)dev->priv_data;
 
     /* Allocate motors */
-    for (int i = 0; i < SO101_ARM_MOTORS; ++i) {
+    for (int i = 0; i < SO101_ARM_MOTOR_COUNT; ++i) {
         p->motors[i] =
                 motor_alloc_uart("drv_uart_feetech",
                                     cfg.uart_path,
@@ -1300,16 +1298,16 @@ static struct manip_dev *so101_factory(const char *name, void *args) {
         }
     }
 
-    if (motor_init(p->motors, SO101_ARM_MOTORS) != 0) {
+    if (motor_init(p->motors, SO101_ARM_MOTOR_COUNT) != 0) {
         fprintf(stderr, "[SO101] motor_init failed\n");
-        motor_free(p->motors, SO101_ARM_MOTORS);
+        motor_free(p->motors, SO101_ARM_MOTOR_COUNT);
         manip_dev_free_default(dev);
         return NULL;
     }
 
     /* 配置舵机参数 (PID/加速度/延迟) — 每次启动都配置以确保一致性 */
-    so101_disable_torque_all(p->motors, SO101_ARM_MOTORS);
-    so101_configure_motors(p->motors, SO101_ARM_MOTORS);
+    so101_disable_torque_all(p->motors, SO101_ARM_MOTOR_COUNT);
+    so101_configure_motors(p->motors, SO101_ARM_MOTOR_COUNT);
 
     /* 尝试加载并应用校准数据 */
     memset(&p->calib, 0, sizeof(p->calib));
@@ -1321,20 +1319,20 @@ static struct manip_dev *so101_factory(const char *name, void *args) {
     }
 
     /* 使能扭矩 */
-    so101_enable_torque_all(p->motors, SO101_ARM_MOTORS);
+    so101_enable_torque_all(p->motors, SO101_ARM_MOTOR_COUNT);
     p->assembled = true;
     p->has_target = false;  /* 初始化运动控制状态 */
-    dev->cur_joints.count = SO101_ARM_MOTORS;
+    dev->cur_joints.count = SO101_ARM_MOTOR_COUNT;
 
     /* 如果加载了校准数据，发送命令让关节移动到零位 (0 rad) */
     if (p->calib.valid) {
-        struct motor_cmd cmds[SO101_ARM_MOTORS];
-        for (int i = 0; i < SO101_ARM_MOTORS; i++) {
+        struct motor_cmd cmds[SO101_ARM_MOTOR_COUNT];
+        for (int i = 0; i < SO101_ARM_MOTOR_COUNT; i++) {
             cmds[i].mode = MOTOR_MODE_POS;
             cmds[i].pos_des = joint_rad_to_motor_rad(0.0f);
             cmds[i].vel_des = SO101_DEFAULT_VEL_RAD_S;
         }
-        motor_set_cmds(p->motors, cmds, SO101_ARM_MOTORS);
+        motor_set_cmds(p->motors, cmds, SO101_ARM_MOTOR_COUNT);
         printf("[SO101] 已发送归零命令 (关节目标: 0 rad)\n");
     }
 
@@ -1366,7 +1364,7 @@ static struct manip_dev *so101_factory(const char *name, void *args) {
 * @brief 获取关节名称
 */
 const char *so101_joint_name(int index) {
-    if (index >= 0 && index < SO101_ARM_MOTORS)
+    if (index >= 0 && index < SO101_ARM_MOTOR_COUNT)
         return so101_joint_names[index];
     return "unknown";
 }

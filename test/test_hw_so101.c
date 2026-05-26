@@ -39,6 +39,7 @@ struct so101_config {
     const char *kin_solver_name;
 };
 #include "motor.h"
+#include "so101_gripper.h"
 #include "so101_utils.h"
 #include "sts3215_regs.h"
 
@@ -159,6 +160,37 @@ static struct grasp_dev *alloc_grip_on_current_port(void) {
     };
 
     return grasp_alloc("so101_gripper", &grip_cfg);
+}
+
+static void free_current_handles(void) {
+    if (g_arm) {
+        manip_stop(g_arm);
+        manip_free(g_arm);
+        g_arm = NULL;
+    }
+    if (g_grip) {
+        grasp_execute(g_grip, GRASP_CMD_RELAX, 0.0f);
+        grasp_free(g_grip);
+        g_grip = NULL;
+    }
+}
+
+static void reinit_current_handles(void) {
+    free_current_handles();
+
+    printf("\n  重新初始化机械臂...\n");
+    g_arm = alloc_arm_on_current_port();
+    if (g_arm)
+        printf("  ✓ 机械臂就绪\n");
+    else
+        printf("  ✗ 机械臂初始化失败\n");
+
+    printf("  重新初始化夹爪...\n");
+    g_grip = alloc_grip_on_current_port();
+    if (g_grip)
+        printf("  ✓ 夹爪就绪\n");
+    else
+        printf("  ✗ 夹爪初始化失败\n");
 }
 
 /* 等待用户按回车 */
@@ -564,16 +596,7 @@ static void test_assemble(void) {
 
     /* 释放现有连接，避免与新建的 motor_dev 冲突 */
     printf("  释放现有连接...\n");
-    if (g_arm) {
-        manip_stop(g_arm);
-        manip_free(g_arm);
-        g_arm = NULL;
-    }
-    if (g_grip) {
-        grasp_execute(g_grip, GRASP_CMD_RELAX, 0.0f);
-        grasp_free(g_grip);
-        g_grip = NULL;
-    }
+    free_current_handles();
 
     /* 创建临时电机句柄 */
     struct motor_dev *motors[SO101_ARM_MOTOR_COUNT];
@@ -606,20 +629,7 @@ static void test_assemble(void) {
     motor_free(motors, SO101_ARM_MOTOR_COUNT);
 
 reinit:
-    /* 重新初始化机械臂和夹爪 */
-    printf("\n  重新初始化机械臂...\n");
-    g_arm = alloc_arm_on_current_port();
-    if (g_arm)
-        printf("  ✓ 机械臂就绪\n");
-    else
-        printf("  ✗ 机械臂初始化失败\n");
-
-    printf("  重新初始化夹爪...\n");
-    g_grip = alloc_grip_on_current_port();
-    if (g_grip)
-        printf("  ✓ 夹爪就绪\n");
-    else
-        printf("  ✗ 夹爪初始化失败\n");
+    reinit_current_handles();
 }
 
 /**
@@ -661,16 +671,7 @@ static void test_calibrate(void) {
 
     /* 释放现有连接 */
     printf("  释放现有连接...\n");
-    if (g_arm) {
-        manip_stop(g_arm);
-        manip_free(g_arm);
-        g_arm = NULL;
-    }
-    if (g_grip) {
-        grasp_execute(g_grip, GRASP_CMD_RELAX, 0.0f);
-        grasp_free(g_grip);
-        g_grip = NULL;
-    }
+    free_current_handles();
 
     /* 创建临时电机句柄 */
     struct motor_dev *motors[SO101_ARM_MOTOR_COUNT];
@@ -712,20 +713,9 @@ static void test_calibrate(void) {
     motor_free(motors, SO101_ARM_MOTOR_COUNT);
 
 reinit:
-    /* 重新初始化 */
-    printf("\n  重新初始化机械臂...\n");
-    g_arm = alloc_arm_on_current_port();
+    reinit_current_handles();
     if (g_arm)
-        printf("  ✓ 机械臂就绪 (校准数据已自动加载)\n");
-    else
-        printf("  ✗ 机械臂初始化失败\n");
-
-    printf("  重新初始化夹爪...\n");
-    g_grip = alloc_grip_on_current_port();
-    if (g_grip)
-        printf("  ✓ 夹爪就绪\n");
-    else
-        printf("  ✗ 夹爪初始化失败\n");
+        printf("  ✓ 校准数据已自动加载\n");
 }
 
 /**
@@ -737,16 +727,7 @@ static void test_read_registers(void) {
     printf("\n=== 测试 11: 读取舵机寄存器 ===\n");
 
     /* 释放现有连接 */
-    if (g_arm) {
-        manip_stop(g_arm);
-        manip_free(g_arm);
-        g_arm = NULL;
-    }
-    if (g_grip) {
-        grasp_execute(g_grip, GRASP_CMD_RELAX, 0.0f);
-        grasp_free(g_grip);
-        g_grip = NULL;
-    }
+    free_current_handles();
 
     struct motor_dev *motors[SO101_ARM_MOTOR_COUNT];
 
@@ -795,9 +776,7 @@ static void test_read_registers(void) {
     motor_free(motors, SO101_ARM_MOTOR_COUNT);
 
 reinit:
-    /* 重新初始化 */
-    g_arm = alloc_arm_on_current_port();
-    g_grip = alloc_grip_on_current_port();
+    reinit_current_handles();
 }
 
 /**
