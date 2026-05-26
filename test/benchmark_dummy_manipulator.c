@@ -28,6 +28,10 @@ int main(int argc, char **argv) {
     if (argc > 2) {
         max_avg_us = atof(argv[2]);
     }
+    if (iters <= 0) {
+        fprintf(stderr, "iters must be > 0, got %d\n", iters);
+        return 4;
+    }
 
     struct manip_dev *dev = manip_alloc("dummy", NULL);
     if (!dev) {
