@@ -30,14 +30,6 @@
 #include "grasp.h"
 #include "kinematics_interface.h"
 #include "manipulator.h"
-
-struct so101_config {
-    const char *uart_path;
-    uint32_t baud;
-    uint8_t ids[5];
-    const char *urdf_path;
-    const char *kin_solver_name;
-};
 #include "motor.h"
 #include "so101_gripper.h"
 #include "so101_utils.h"

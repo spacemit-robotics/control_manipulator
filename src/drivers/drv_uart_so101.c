@@ -396,11 +396,18 @@ static int so101_load_calibration(struct so101_calibration *calib,
         if (!p)
             continue;
 
-        /* 解析 "id": N */
-        int id = 0;
+        /* 解析 "id": N — 必须存在且合法 */
         char *id_p = strstr(line, "\"id\":");
-        if (id_p)
-            id = atoi(id_p + 5);
+        if (!id_p) {
+            fprintf(stderr, "[SO101] 校准行缺少 id 字段，跳过\n");
+            continue;
+        }
+        int id = atoi(id_p + 5);
+        int idx = id - 1;
+        if (idx < 0 || idx >= SO101_ARM_MOTOR_COUNT) {
+            fprintf(stderr, "[SO101] 校准 id=%d 越界，跳过\n", id);
+            continue;
+        }
 
         /* 解析 homing_offset, range_min, range_max */
         int hofs = 0;
@@ -418,14 +425,10 @@ static int so101_load_calibration(struct so101_calibration *calib,
         if (rmax_p)
             rmax = (unsigned int)atoi(rmax_p + 12);
 
-        /* 将 id (1-based) 映射到数组索引 (0-based) */
-        int idx = id - 1;
-        if (idx >= 0 && idx < SO101_ARM_MOTOR_COUNT) {
-            calib->joints[idx].homing_offset = (int16_t)hofs;
-            calib->joints[idx].range_min = (uint16_t)rmin;
-            calib->joints[idx].range_max = (uint16_t)rmax;
-            loaded++;
-        }
+        calib->joints[idx].homing_offset = (int16_t)hofs;
+        calib->joints[idx].range_min = (uint16_t)rmin;
+        calib->joints[idx].range_max = (uint16_t)rmax;
+        loaded++;
     }
     fclose(f);
 
